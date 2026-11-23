@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rekapitulasi Hasil Produksi Corrugator (BHS) — September 2026</title>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-light: #eff6ff;
+      --border: #cbd5e1;
+      --text: #1e293b;
+      --muted: #64748b;
+      --bg: #f8fafc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 24px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 24px 32px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    header {
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    h1 {
+      font-size: 1.35rem;
+      color: var(--primary);
+      margin: 0;
+    }
+    .badge {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    label {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    select {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      background: #fff;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--primary-light);
+      border-left: 4px solid var(--primary);
+      padding: 14px 16px;
+      border-radius: 8px;
+    }
+    .card-title {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .card-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 0.95rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+    }
+    th {
+      background-color: var(--primary);
+      color: #ffffff;
+      text-align: left;
+    }
+    th.num, td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    tbody tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    tbody tr:hover {
+      background-color: #f1f5f9;
+    }
+    tfoot tr {
+      background-color: #e2e8f0;
+      font-weight: 700;
+    }
+    .note {
+      margin-top: 16px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>REKAPITULASI HASIL PRODUKSI CORRUGATOR (BHS)</h1>
+      <span class="badge">Periode: September 2026</span>
+    </header>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="filter-shift">Pilih Shift:</label>
+        <select id="filter-shift">
+          <option value="Total Gabungan">Total Gabungan (Shift 1, 2 & 3)</option>
+          <option value="Shift 1">Shift 1</option>
+          <option value="Shift 2">Shift 2</option>
+          <option value="Shift 3">Shift 3</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="filter-flute">Filter Flute:</label>
+        <select id="filter-flute">
+          <option value="ALL">Semua Flute (BF, CF, BC, EF, BE)</option>
+          <option value="BF">BF</option>
+          <option value="CF">CF</option>
+          <option value="BC">BC</option>
+          <option value="EF">EF</option>
+          <option value="BE">BE</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="cards" id="summary-cards"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Flute</th>
+          <th class="num">Hasil Corr (Pcs)</th>
+          <th class="num">Hasil (Kg)</th>
+          <th class="num">RM (Meter)</th>
+          <th class="num">Jumlah Order (WO)</th>
+          <th class="num">Kontribusi Pcs (%)</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+      <tfoot id="table-foot"></tfoot>
+    </table>
+
+    <p class="note">
+      * Data dimuat otomatis dari file <code>data_produksi.csv</code>. Pastikan file <code>index.html</code> dan <code>data_produksi.csv</code> berada dalam satu folder yang sama.
+    </p>
+  </div>
+
+  <script>
+    let allData = [];
+
+    function formatRibuan(angka) {
+      return Number(angka).toLocaleString('id-ID');
+    }
+
+    function renderDashboard() {
+      const selectedShift = document.getElementById('filter-shift').value;
+      const selectedFlute = document.getElementById('filter-flute').value;
+
+      const filtered = allData.filter(item => {
+        const matchShift = item.Shift === selectedShift;
+        const matchFlute = selectedFlute === 'ALL' || item.Flute === selectedFlute;
+        return matchShift && matchFlute;
+      });
+
+      const totalPcs = filtered.reduce((sum, r) => sum + r.Hasil_Corr_Pcs, 0);
+      const totalKg = filtered.reduce((sum, r) => sum + r.Hasil_Kg, 0);
+      const totalRm = filtered.reduce((sum, r) => sum + r.RM_Meter, 0);
+      const totalWo = filtered.reduce((sum, r) => sum + r.Jumlah_Order_WO, 0);
+
+      // Update Summary Cards
+      document.getElementById('summary-cards').innerHTML = `
+        <div class="card">
+          <div class="card-title">Total Hasil Corr (Pcs)</div>
+          <div class="card-value">${formatRibuan(totalPcs)}</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Total Hasil (Kg)</div>
+          <div class="card-value">${formatRibuan(totalKg)}</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Total RM (Meter)</div>
+          <div class="card-value">${formatRibuan(totalRm)}</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Total Order (WO)</div>
+          <div class="card-value">${formatRibuan(totalWo)}</div>
+        </div>
+      `;
+
+      // Update Table Body
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+
+      filtered.forEach((row, idx) => {
+        const persen = totalPcs > 0 ? ((row.Hasil_Corr_Pcs / totalPcs) * 100).toFixed(2).replace('.', ',') : '0,00';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td><strong>${row.Flute}</strong></td>
+          <td class="num">${formatRibuan(row.Hasil_Corr_Pcs)}</td>
+          <td class="num">${formatRibuan(row.Hasil_Kg)}</td>
+          <td class="num">${formatRibuan(row.RM_Meter)}</td>
+          <td class="num">${formatRibuan(row.Jumlah_Order_WO)}</td>
+          <td class="num">${persen}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Update Table Footer
+      document.getElementById('table-foot').innerHTML = `
+        <tr>
+          <td colspan="2">TOTAL (${filtered.length} FLUTE)</td>
+          <td class="num">${formatRibuan(totalPcs)}</td>
+          <td class="num">${formatRibuan(totalKg)}</td>
+          <td class="num">${formatRibuan(totalRm)}</td>
+          <td class="num">${formatRibuan(totalWo)}</td>
+          <td class="num">100%</td>
+        </tr>
+      `;
+    }
+
+    fetch('data_produksi.csv')
+      .then(res => res.text())
+      .then(csvText => {
+        const lines = csvText.trim().split('\n');
+        const headers = lines[0].split(',').map(h => h.trim());
+
+        allData = lines.slice(1).map(line => {
+          const vals = line.split(',');
+          return {
+            Periode: vals[0].trim(),
+            Shift: vals[1].trim(),
+            Flute: vals[2].trim(),
+            Hasil_Corr_Pcs: Number(vals[3]),
+            Hasil_Kg: Number(vals[4]),
+            RM_Meter: Number(vals[5]),
+            Jumlah_Order_WO: Number(vals[6])
+          };
+        });
+
+        renderDashboard();
+      })
+      .catch(err => {
+        document.getElementById('table-body').innerHTML = `
+          <tr><td colspan="7" style="color:red; text-align:center;">
+            Gagal memuat <code>data_produksi.csv</code>. Pastikan file dijalankan lewat server lokal (Live Server) atau GitHub Pages.
+          </td></tr>`;
+      });
+
+    document.getElementById('filter-shift').addEventListener('change', renderDashboard);
+    document.getElementById('filter-flute').addEventListener('change', renderDashboard);
+  </script>
+</body>
+</html>
