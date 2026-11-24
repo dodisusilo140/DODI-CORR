@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rekapitulasi Hasil Produksi Corrugator (BHS) Per Shift & Flute</title>
+  <style>
+    :root {
+      --navy-dark: #1B365D;
+      --navy-med: #2C5282;
+      --section-bg: #D9E1F2;
+      --filter-bg: #FFFBEB;
+      --total-bg: #E2E8F0;
+      --grand-total-bg: #CBD5E1;
+      --border-color: #CBD5E1;
+      --text-dark: #1E293B;
+      --text-muted: #64748B;
+      --bg-page: #F1F5F9;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-dark);
+      padding: 20px;
+      line-height: 1.4;
+    }
+
+    .container {
+      max-width: 1050px;
+      margin: 0 auto;
+      background: #FFFFFF;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+      border: 1px solid #E2E8F0;
+    }
+
+    /* Banner Header */
+    .report-header {
+      background-color: var(--navy-dark);
+      color: #FFFFFF;
+      padding: 20px 24px;
+    }
+
+    .report-header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      margin-bottom: 4px;
+    }
+
+    .report-header p {
+      font-size: 12.5px;
+      color: #E2E8F0;
+    }
+
+    /* Status & Action Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      background-color: #F8FAFC;
+      padding: 10px 24px;
+      border-bottom: 1px solid #E2E8F0;
+      font-size: 12px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+      background-color: #E0F2FE;
+      color: #0369A1;
+    }
+
+    .status-badge.live {
+      background-color: #DCFCE7;
+      color: #15803D;
+    }
+
+    .status-badge.error {
+      background-color: #FEF3C7;
+      color: #B45309;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 5px;
+      border: 1px solid #CBD5E1;
+      background: #FFFFFF;
+      color: var(--navy-dark);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      background: #F1F5F9;
+    }
+
+    .btn-primary {
+      background: var(--navy-med);
+      color: #FFFFFF;
+      border-color: var(--navy-med);
+    }
+
+    .btn-primary:hover {
+      background: var(--navy-dark);
+    }
+
+    /* Content Body */
+    .content {
+      padding: 20px 24px 28px;
+    }
+
+    /* Filter Grid matching Excel Row 5-6 */
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .filter-card {
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .filter-label {
+      background-color: var(--navy-med);
+      color: #FFFFFF;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      padding: 6px 8px;
+      letter-spacing: 0.4px;
+    }
+
+    .filter-value {
+      background-color: var(--filter-bg);
+      color: var(--navy-dark);
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+      padding: 6px 8px;
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .filter-value select {
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--navy-dark);
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+      text-align-last: center;
+      cursor: pointer;
+      outline: none;
+    }
+
+    /* Report Section Tables */
+    .report-section {
+      margin-bottom: 18px;
+    }
+
+    .section-banner {
+      background-color: var(--section-bg);
+      color: var(--navy-dark);
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 7px 12px;
+      border: 1px solid #B4C6E7;
+      border-bottom: none;
+      letter-spacing: 0.2px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      table-layout: fixed;
+    }
+
+    th {
+      background-color: var(--navy-med);
+      color: #FFFFFF;
+      font-weight: 700;
+      padding: 7px 10px;
+      border: 1px solid #94A3B8;
+      text-align: center;
+    }
+
+    td {
+      padding: 6px 10px;
+      border: 1px solid var(--border-color);
+      color: var(--text-dark);
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #F8FAFC;
+    }
+
+    tbody tr:hover {
+      background-color: #EFF6FF;
+    }
+
+    col.col-no { width: 7%; }
+    col.col-flute { width: 21%; }
+    col.col-num { width: 18%; }
+
+    .text-center { text-align: center; }
+    .text-left { text-align: left; }
+    .text-right { text-align: right; font-variant-numeric: tabular-nums; }
+
+    tr.row-total td {
+      background-color: var(--total-bg);
+      font-weight: 700;
+      color: var(--navy-dark);
+      border-top: 1.5px solid #94A3B8;
+      border-bottom: 1.5px solid #94A3B8;
+    }
+
+    tr.row-grand-total td {
+      background-color: var(--grand-total-bg);
+      font-weight: 700;
+      color: #0F172A;
+      border-top: 2px solid #64748B;
+      border-bottom: 2px solid #64748B;
+    }
+
+    .footnote {
+      margin-top: 12px;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    @media (max-width: 720px) {
+      .filter-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      body {
+        padding: 10px;
+      }
+      .content {
+        padding: 14px;
+      }
+      table {
+        font-size: 11px;
+      }
+      th, td {
+        padding: 5px 6px;
+      }
+    }
+
+    @media print {
+      body {
+        background: #FFFFFF;
+        padding: 0;
+      }
+      .container {
+        box-shadow: none;
+        border: none;
+        max-width: 100%;
+      }
+      .toolbar {
+        display: none;
+      }
+      .content {
+        padding: 10px 0;
+      }
+      .report-section {
+        break-inside: avoid;
+        margin-bottom: 12px;
+      }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header Banner -->
+    <div class="report-header">
+      <h1>REKAPITULASI HASIL PRODUKSI CORRUGATOR (BHS) PER SHIFT &amp; FLUTE</h1>
+      <p>Pilih Bulan &amp; Tahun di bawah untuk menarik data otomatis dari Google Sheets (Gunakan 'SEMUA' untuk menampilkan seluruh data)</p>
+    </div>
+
+    <!-- Live Sync Toolbar -->
+    <div class="toolbar">
+      <div>
+        <span id="syncStatus" class="status-badge">Menghubungkan ke Google Sheets...</span>
+        <span id="lastUpdated" style="margin-left: 8px; color: #64748B;"></span>
+      </div>
+      <div class="toolbar-actions">
+        <label class="btn" style="display:inline-flex; align-items:center; gap:4px;">
+          Upload CSV Manual
+          <input type="file" id="csvFileInput" accept=".csv" style="display:none;" />
+        </label>
+        <button class="btn" onclick="loadFromGoogleSheets()">&#x21bb; Refresh Data</button>
+        <button class="btn btn-primary" onclick="window.print()">Cetak / PDF</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- Filter Controls (Row 5 & 6) -->
+      <div class="filter-grid">
+        <div class="filter-card">
+          <div class="filter-label">PILIH BULAN</div>
+          <div class="filter-value">
+            <select id="selectBulan" onchange="renderReport()">
+              <option value="September">September</option>
+            </select>
+          </div>
+        </div>
+        <div class="filter-card">
+          <div class="filter-label">PILIH TAHUN</div>
+          <div class="filter-value">
+            <select id="selectTahun" onchange="renderReport()">
+              <option value="2026">2026</option>
+            </select>
+          </div>
+        </div>
+        <div class="filter-card">
+          <div class="filter-label">KODE BULAN AKTIF</div>
+          <div class="filter-value" id="activeBulan">September</div>
+        </div>
+        <div class="filter-card">
+          <div class="filter-label">KODE TAHUN AKTIF</div>
+          <div class="filter-value" id="activeTahun">2026</div>
+        </div>
+      </div>
+
+      <!-- Dynamic Report Tables Container -->
+      <div id="reportTables"></div>
+
+      <div class="footnote">
+        <span>Sumber Data: Google Sheets Published CSV (Otomatis sinkron saat halaman dimuat/di-refresh)</span>
+        <span id="rowCountInfo">Total Baris Data Valid: 0</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const GSHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6PsQXIi_KnnpZmjuRToMZ8wUPHNTSTE4WFnj0J2m5CR6wAf9C3pgfEqMl3Nyl-Q/pub?gid=1559265829&single=true&output=csv";
+    const STANDARD_FLUTES = ["BF", "CF", "BC", "EF", "BE"];
+    const MONTH_ORDER = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+
+    let allRecords = [];
+
+    // Robust RFC-4180 CSV parser handling quoted commas and newlines
+    function parseCSV(text) {
+      const rows = [];
+      let currentRow = [];
+      let currentVal = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const nextChar = text[i + 1];
+
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            currentVal += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          currentRow.push(currentVal.trim());
+          currentVal = "";
+        } else if ((char === '
+' || char === '
+') && !inQuotes) {
+          if (char === '
+' && nextChar === '
+') i++;
+          currentRow.push(currentVal.trim());
+          if (currentRow.some(cell => cell !== "")) {
+            rows.push(currentRow);
+          }
+          currentRow = [];
+          currentVal = "";
+        } else {
+          currentVal += char;
+        }
+      }
+      if (currentVal !== "" || currentRow.length > 0) {
+        currentRow.push(currentVal.trim());
+        if (currentRow.some(cell => cell !== "")) {
+          rows.push(currentRow);
+        }
+      }
+      return rows;
+    }
+
+    function parseNumber(val) {
+      if (val === null || val === undefined || val === "") return 0;
+      let str = String(val).trim();
+      // Handle Indonesian decimal comma vs standard numbers
+      if (str.includes(",") && !str.includes(".")) {
+        str = str.replace(",", ".");
+      } else {
+        str = str.replace(/,/g, "");
+      }
+      const num = parseFloat(str);
+      return isNaN(num) ? 0 : num;
+    }
+
+    function formatInt(num) {
+      return Math.round(num).toLocaleString("id-ID");
+    }
+
+    function formatPct(part, total) {
+      if (!total || total === 0) return "0,0%";
+      const pct = (part / total) * 100;
+      return pct.toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+    }
+
+    function processCSVText(csvText) {
+      const rows = parseCSV(csvText);
+      if (rows.length < 2) return;
+
+      const headers = rows[0].map(h => h.trim());
+      const idxBulan = headers.findIndex(h => h.toLowerCase() === "bulan");
+      const idxTahun = headers.findIndex(h => h.toLowerCase() === "tahun");
+      const idxShift = headers.findIndex(h => h.toLowerCase() === "shift");
+      const idxFlute = headers.findIndex(h => h.toLowerCase() === "flute");
+      const idxHasilCorr = headers.findIndex(h => h.toLowerCase() === "hasil corr");
+      const idxHasilKg = headers.findIndex(h => h.toLowerCase() === "hasil (kg)");
+      const idxRM = headers.findIndex(h => h.toLowerCase() === "rm");
+      const idxWOQty = headers.findIndex(h => h.toLowerCase() === "wo qty");
+
+      const records = [];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        const bulan = idxBulan >= 0 ? (r[idxBulan] || "").trim() : "";
+        const tahun = idxTahun >= 0 ? (r[idxTahun] || "").trim() : "";
+        const shiftRaw = idxShift >= 0 ? (r[idxShift] || "").trim() : "";
+        const woQtyRaw = idxWOQty >= 0 ? (r[idxWOQty] || "").trim() : "";
+
+        // Skip subtotal summary rows (e.g. "Total (550)") or rows without valid Shift/Bulan
+        if (!bulan || !shiftRaw || woQtyRaw.toLowerCase().startsWith("total")) {
+          continue;
+        }
+
+        const shiftNum = parseInt(shiftRaw, 10);
+        if (![1, 2, 3].includes(shiftNum)) continue;
+
+        let flute = idxFlute >= 0 ? (r[idxFlute] || "").trim().toUpperCase() : "";
+        if (!flute || flute === "(KOSONG)" || flute === "-") {
+          flute = "(Kosong)";
+        }
+
+        records.push({
+          bulan,
+          tahun: tahun.replace(/\.0$/, ""),
+          shift: shiftNum,
+          flute,
+          hasilCorr: idxHasilCorr >= 0 ? parseNumber(r[idxHasilCorr]) : 0,
+          hasilKg: idxHasilKg >= 0 ? parseNumber(r[idxHasilKg]) : 0,
+          rm: idxRM >= 0 ? parseNumber(r[idxRM]) : 0,
+          woCount: 1
+        });
+      }
+
+      allRecords = records;
+      populateDropdowns();
+      renderReport();
+    }
+
+    function populateDropdowns() {
+      const selectBulan = document.getElementById("selectBulan");
+      const selectTahun = document.getElementById("selectTahun");
+      const prevBulan = selectBulan.value;
+      const prevTahun = selectTahun.value;
+
+      const uniqueMonths = Array.from(new Set(allRecords.map(r => r.bulan).filter(Boolean)));
+      uniqueMonths.sort((a, b) => {
+        const ia = MONTH_ORDER.indexOf(a);
+        const ib = MONTH_ORDER.indexOf(b);
+        if (ia === -1 && ib === -1) return a.localeCompare(b);
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      });
+
+      const uniqueYears = Array.from(new Set(allRecords.map(r => r.tahun).filter(Boolean))).sort();
+
+      selectBulan.innerHTML = "";
+      uniqueMonths.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m;
+        opt.textContent = m;
+        selectBulan.appendChild(opt);
+      });
+      const optAllMonth = document.createElement("option");
+      optAllMonth.value = "SEMUA";
+      optAllMonth.textContent = "SEMUA";
+      selectBulan.appendChild(optAllMonth);
+
+      selectTahun.innerHTML = "";
+      uniqueYears.forEach(y => {
+        const opt = document.createElement("option");
+        opt.value = y;
+        opt.textContent = y;
+        selectTahun.appendChild(opt);
+      });
+      const optAllYear = document.createElement("option");
+      optAllYear.value = "SEMUA";
+      optAllYear.textContent = "SEMUA";
+      selectTahun.appendChild(optAllYear);
+
+      // Default to September 2026 if available, else keep previous or first
+      if (prevBulan && (uniqueMonths.includes(prevBulan) || prevBulan === "SEMUA")) {
+        selectBulan.value = prevBulan;
+      } else if (uniqueMonths.includes("September")) {
+        selectBulan.value = "September";
+      } else if (uniqueMonths.length > 0) {
+        selectBulan.value = uniqueMonths[0];
+      }
+
+      if (prevTahun && (uniqueYears.includes(prevTahun) || prevTahun === "SEMUA")) {
+        selectTahun.value = prevTahun;
+      } else if (uniqueYears.includes("2026")) {
+        selectTahun.value = "2026";
+      } else if (uniqueYears.length > 0) {
+        selectTahun.value = uniqueYears[0];
+      }
+    }
+
+    function aggregateFlutes(records) {
+      const map = {};
+      STANDARD_FLUTES.forEach(f => {
+        map[f] = { hasilCorr: 0, hasilKg: 0, rm: 0, woCount: 0 };
+      });
+      const otherMap = {};
+
+      records.forEach(r => {
+        if (STANDARD_FLUTES.includes(r.flute)) {
+          map[r.flute].hasilCorr += r.hasilCorr;
+          map[r.flute].hasilKg += r.hasilKg;
+          map[r.flute].rm += r.rm;
+          map[r.flute].woCount += r.woCount;
+        } else {
+          const key = r.flute || "(Kosong)";
+          if (!otherMap[key]) {
+            otherMap[key] = { hasilCorr: 0, hasilKg: 0, rm: 0, woCount: 0 };
+          }
+          otherMap[key].hasilCorr += r.hasilCorr;
+          otherMap[key].hasilKg += r.hasilKg;
+          otherMap[key].rm += r.rm;
+          otherMap[key].woCount += r.woCount;
+        }
+      });
+
+      const totalStandard = { hasilCorr: 0, hasilKg: 0, rm: 0, woCount: 0 };
+      STANDARD_FLUTES.forEach(f => {
+        totalStandard.hasilCorr += map[f].hasilCorr;
+        totalStandard.hasilKg += map[f].hasilKg;
+        totalStandard.rm += map[f].rm;
+        totalStandard.woCount += map[f].woCount;
+      });
+
+      return { standard: map, totalStandard, otherMap };
+    }
+
+    function buildShiftTableHTML(title, aggData) {
+      let rowsHTML = "";
+      STANDARD_FLUTES.forEach((flute, idx) => {
+        const d = aggData.standard[flute];
+        rowsHTML += `
+          <tr>
+            <td class="text-center">${idx + 1}</td>
+            <td class="text-center"><strong>${flute}</strong></td>
+            <td class="text-right">${formatInt(d.hasilCorr)}</td>
+            <td class="text-right">${formatInt(d.hasilKg)}</td>
+            <td class="text-right">${formatInt(d.rm)}</td>
+            <td class="text-right">${formatInt(d.woCount)}</td>
+          </tr>
+        `;
+      });
+
+      const t = aggData.totalStandard;
+      rowsHTML += `
+        <tr class="row-total">
+          <td class="text-center"></td>
+          <td class="text-left">TOTAL (5 FLUTE)</td>
+          <td class="text-right">${formatInt(t.hasilCorr)}</td>
+          <td class="text-right">${formatInt(t.hasilKg)}</td>
+          <td class="text-right">${formatInt(t.rm)}</td>
+          <td class="text-right">${formatInt(t.woCount)}</td>
+        </tr>
+      `;
+
+      return `
+        <div class="report-section">
+          <div class="section-banner">${title}</div>
+          <table>
+            <colgroup>
+              <col class="col-no" />
+              <col class="col-flute" />
+              <col class="col-num" />
+              <col class="col-num" />
+              <col class="col-num" />
+              <col class="col-num" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Flute</th>
+                <th>Hasil Corr (Pcs)</th>
+                <th>Hasil (Kg)</th>
+                <th>RM (Meter)</th>
+                <th>Jumlah Order (WO)</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHTML}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function buildReconciliationHTML(combinedAgg) {
+      const otherKeys = Object.keys(combinedAgg.otherMap);
+      if (!otherKeys.includes("(Kosong)")) {
+        otherKeys.push("(Kosong)");
+      }
+
+      let rowsHTML = "";
+      let otherTotal = { hasilCorr: 0, hasilKg: 0, rm: 0, woCount: 0 };
+
+      otherKeys.forEach((key, idx) => {
+        const d = combinedAgg.otherMap[key] || { hasilCorr: 0, hasilKg: 0, rm: 0, woCount: 0 };
+        otherTotal.hasilCorr += d.hasilCorr;
+        otherTotal.hasilKg += d.hasilKg;
+        otherTotal.rm += d.rm;
+        otherTotal.woCount += d.woCount;
+
+        rowsHTML += `
+          <tr>
+            <td class="text-center">${idx + 1}</td>
+            <td class="text-center">${key}</td>
+            <td class="text-right">${formatInt(d.hasilCorr)}</td>
+            <td class="text-right">${formatInt(d.hasilKg)}</td>
+            <td class="text-right">${formatInt(d.rm)}</td>
+            <td class="text-right">${formatInt(d.woCount)}</td>
+          </tr>
+        `;
+      });
+
+      const gt = {
+        hasilCorr: combinedAgg.totalStandard.hasilCorr + otherTotal.hasilCorr,
+        hasilKg: combinedAgg.totalStandard.hasilKg + otherTotal.hasilKg,
+        rm: combinedAgg.totalStandard.rm + otherTotal.rm,
+        woCount: combinedAgg.totalStandard.woCount + otherTotal.woCount
+      };
+
+      rowsHTML += `
+        <tr class="row-grand-total">
+          <td class="text-center"></td>
+          <td class="text-left">GRAND TOTAL ALL DATA</td>
+          <td class="text-right">${formatInt(gt.hasilCorr)}</td>
+          <td class="text-right">${formatInt(gt.hasilKg)}</td>
+          <td class="text-right">${formatInt(gt.rm)}</td>
+          <td class="text-right">${formatInt(gt.woCount)}</td>
+        </tr>
+      `;
+
+      return `
+        <div class="report-section">
+          <div class="section-banner">CATATAN / REKONSILIASI FLUTE LAINNYA DI DATA RAW (NON-5 FLUTE &amp; TANPA FLUTE)</div>
+          <table>
+            <colgroup>
+              <col class="col-no" />
+              <col class="col-flute" />
+              <col class="col-num" />
+              <col class="col-num" />
+              <col class="col-num" />
+              <col class="col-num" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Flute</th>
+                <th>Hasil Corr (Pcs)</th>
+                <th>Hasil (Kg)</th>
+                <th>RM (Meter)</th>
+                <th>Jumlah Order (WO)</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHTML}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function buildPercentageTableHTML(combinedAgg) {
+      const t = combinedAgg.totalStandard;
+      let rowsHTML = "";
+
+      STANDARD_FLUTES.forEach((flute, idx) => {
+        const d = combinedAgg.standard[flute];
+        rowsHTML += `
+          <tr>
+            <td class="text-center">${idx + 1}</td>
+            <td class="text-center"><strong>${flute}</strong></td>
+            <td class="text-right">${formatPct(d.hasilCorr, t.hasilCorr)}</td>
+            <td class="text-right">${formatPct(d.hasilKg, t.hasilKg)}</td>
+            <td class="text-right">${formatPct(d.rm, t.rm)}</td>
+            <td class="text-right">${formatPct(d.woCount, t.woCount)}</td>
+          </tr>
+        `;
+      });
+
+      const hasData = t.woCount > 0;
+      rowsHTML += `
+        <tr class="row-total">
+          <td class="text-center"></td>
+          <td class="text-left">TOTAL (5 FLUTE)</td>
+          <td class="text-right">${hasData ? "100,0%" : "0,0%"}</td>
+          <td class="text-right">${hasData ? "100,0%" : "0,0%"}</td>
+          <td class="text-right">${hasData ? "100,0%" : "0,0%"}</td>
+          <td class="text-right">${hasData ? "100,0%" : "0,0%"}</td>
+        </tr>
+      `;
+
+      return `
+        <div class="report-section">
+          <div class="section-banner">TOTAL GABUNGAN SHIFT 1, 2 &amp; 3 — PER FLUTE (%)</div>
+          <table>
+            <colgroup>
+              <col class="col-no" />
+              <col class="col-flute" />
+              <col class="col-num" />
+              <col class="col-num" />
+              <col class="col-num" />
+              <col class="col-num" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Flute</th>
+                <th>Hasil Corr (Pcs)</th>
+                <th>Hasil (Kg)</th>
+                <th>RM (Meter)</th>
+                <th>Jumlah Order (WO)</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHTML}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderReport() {
+      const selectedBulan = document.getElementById("selectBulan").value;
+      const selectedTahun = document.getElementById("selectTahun").value;
+
+      document.getElementById("activeBulan").textContent = selectedBulan;
+      document.getElementById("activeTahun").textContent = selectedTahun;
+
+      const filtered = allRecords.filter(r => {
+        const matchBulan = selectedBulan === "SEMUA" || r.bulan.toLowerCase() === selectedBulan.toLowerCase();
+        const matchTahun = selectedTahun === "SEMUA" || r.tahun === selectedTahun;
+        return matchBulan && matchTahun;
+      });
+
+      document.getElementById("rowCountInfo").textContent = `Total Baris Data Valid (${selectedBulan} ${selectedTahun}): ${filtered.length.toLocaleString("id-ID")} order`;
+
+      const shift1Agg = aggregateFlutes(filtered.filter(r => r.shift === 1));
+      const shift2Agg = aggregateFlutes(filtered.filter(r => r.shift === 2));
+      const shift3Agg = aggregateFlutes(filtered.filter(r => r.shift === 3));
+      const combinedAgg = aggregateFlutes(filtered);
+
+      const html = [
+        buildShiftTableHTML("SHIFT 1 — REKAP PER FLUTE (BF, CF, BC, EF, BE)", shift1Agg),
+        buildShiftTableHTML("SHIFT 2 — REKAP PER FLUTE (BF, CF, BC, EF, BE)", shift2Agg),
+        buildShiftTableHTML("SHIFT 3 — REKAP PER FLUTE (BF, CF, BC, EF, BE)", shift3Agg),
+        buildShiftTableHTML("TOTAL GABUNGAN SHIFT 1, 2 &amp; 3 — PER FLUTE", combinedAgg),
+        buildReconciliationHTML(combinedAgg),
+        buildPercentageTableHTML(combinedAgg)
+      ].join("");
+
+      document.getElementById("reportTables").innerHTML = html;
+    }
+
+    async function loadFromGoogleSheets() {
+      const statusEl = document.getElementById("syncStatus");
+      const timeEl = document.getElementById("lastUpdated");
+      statusEl.className = "status-badge";
+      statusEl.textContent = "Mengambil data terbaru dari Google Sheets...";
+
+      try {
+        const cacheBusterUrl = GSHEET_CSV_URL + "&_t=" + Date.now();
+        const response = await fetch(cacheBusterUrl);
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const csvText = await response.text();
+        processCSVText(csvText);
+
+        statusEl.className = "status-badge live";
+        statusEl.textContent = "Terhubung ke Google Sheets (Live)";
+        const now = new Date();
+        timeEl.textContent = "Terakhir diperbarui: " + now.toLocaleTimeString("id-ID");
+      } catch (err) {
+        console.error("Gagal fetch Google Sheets:", err);
+        statusEl.className = "status-badge error";
+        statusEl.textContent = "Gagal akses online (Cek koneksi / gunakan Upload CSV Manual)";
+        timeEl.textContent = "";
+      }
+    }
+
+    document.getElementById("csvFileInput").addEventListener("change", function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (evt) {
+        processCSVText(evt.target.result);
+        const statusEl = document.getElementById("syncStatus");
+        statusEl.className = "status-badge live";
+        statusEl.textContent = "Data dimuat dari file: " + file.name;
+        document.getElementById("lastUpdated").textContent = "";
+      };
+      reader.readAsText(file);
+    });
+
+    // Auto-load on page open
+    window.addEventListener("DOMContentLoaded", loadFromGoogleSheets);
+  </script>
+</body>
+</html>
