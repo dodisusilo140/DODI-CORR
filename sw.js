@@ -1,10 +1,10 @@
 /* Service Worker - Rekap Corr */
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL_CACHE = "rekap-corr-shell-" + VERSION;
 const DATA_CACHE  = "rekap-corr-data-" + VERSION;
 const CHART_URL = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js";
 const SHELL = [
-  "./", "./index.html", "./manifest.webmanifest",
+  "./", "./index.html", "./corrbhs.html", "./corrhs250.html", "./corrhs280.html", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./apple-touch-icon.png"
 ];
 
@@ -53,10 +53,10 @@ self.addEventListener("fetch", e => {
     e.respondWith((async () => {
       try {
         const res = await fetch(req);
-        (await caches.open(SHELL_CACHE)).put("./index.html", res.clone());
+        if (res.ok) (await caches.open(SHELL_CACHE)).put(req, res.clone());
         return res;
       } catch (_) {
-        return (await caches.match("./index.html")) || (await caches.match("./"));
+        return (await caches.match(req, { ignoreSearch: true })) || (await caches.match("./index.html"));
       }
     })());
     return;
