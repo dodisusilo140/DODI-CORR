@@ -1175,116 +1175,96 @@
       return out.filter(r => r.rm > 0 || r.ton > 0);
     }
 
-        function toAnalisaRecords(text) {
+    function toAnalisaRecords(text) {
       text = String(text || "").replace(/^\uFEFF/, "");
       const report = parseAnalisaReport(text);
       if (report.length) return report;
-      const r = parseCSV(text);
-      if (!r || r.length < 2) throw new Error("CSV kosong");
 
-      // Cari baris header berdasarkan nama kolom, bukan sekadar kata "Regu".
-      // Ini mencegah baris petunjuk di bagian atas CSV terbaca sebagai header.
+      const rows = parseCSV(text);
+      if (!rows || rows.length < 2) throw new Error("CSV kosong atau tidak terbaca");
+
+      // Normalisasi nama header agar tahan terhadap huruf besar/kecil,
+      // titik, spasi ganda, dan variasi penamaan kolom.
+      const norm = value => String(value || "")
+        .replace(/^\uFEFF/, "")
+        .trim()
+        .toLowerCase()
+        .replace(/[._]/g, " ")
+        .replace(/\s+/g, " ");
+
       let headerIdx = -1;
-      for (let i = 0; i < Math.min(15, r.length); i++) {
-        const cols = r[i].map(x => String(x || "").trim().toLowerCase());
-        const hasBulan = cols.some(x => /^bulan$/.test(x));
-        const hasTahun = cols.some(x => /^tahun$/.test(x));
-        const hasRegu = cols.some(x => /^(kepala\\s*regu|ka\\.?\\s*regu|karu|regu)$/.test(x));
-        const hasWeek = cols.some(x => /^(minggu|week|wk)$/.test(x));
+      for (let i = 0; i < Math.min(20, rows.length); i++) {
+        const cols = rows[i].map(norm);
+        const hasBulan = cols.includes("bulan");
+        const hasTahun = cols.includes("tahun");
+        const hasRegu = cols.some(x => ["kepala regu", "ka regu", "karu", "regu"].includes(x));
+        const hasWeek = cols.some(x => ["minggu", "week", "wk"].includes(x));
         if (hasBulan && hasTahun && hasRegu && hasWeek) {
           headerIdx = i;
           break;
         }
       }
       if (headerIdx < 0) {
-        throw new Error("Baris header CSV tidak ditemukan (butuh kolom Bulan, Tahun, Kepala Regu, dan Minggu)");
+        throw new Error("Header CSV tidak cocok. Pastikan ada kolom Bulan, Tahun, Kepala Regu, dan Minggu.");
       }
 
-      const h = r[headerIdx].map(x => String(x || "").trim());
-      const findCol = regex => h.findIndex(col => regex.test(col));
-
-      const cBulan   = findCol(/^bulan$|month/i);
-      const cTahun   = findCol(/^tahun$|year/i);
-      const cTanggal = findCol(/tanggal|tgl|date/i);
-      const cWeek    = findCol(/^week$|^minggu$|^wk$|^w$/i);
-      const cRegu    = findCol(/kepala\s*regu|ka\.?\s*regu|karu|^regu$|team|group|leader/i);
-      const cShift   = findCol(/^shift$|shf/i);
-      const cJmlShf  = findCol(/jml\s*shift|jumlah\s*shift|total\s*shift|count\s*shift/i);
-      const cRm      = h.findIndex(col => (/^rm$|^rm\s*\(|running\s*meter|total\s*rm|hasil\s*rm/i).test(col) && !/avg|rata|target|std|\/shift/i.test(col));
-      const cTargetRm= findCol(/target\s*rm|std\s*rm|standar\s*rm/i);
-      const cTonase  = findCol(/tonase| ton |hasil\s*\(kg\)|berat|weight|^kg$/i);
-      const cEff     = findCol(/ef[ie]siensi| eff |efficiency/i);
-      const cAvgRm   = findCol(/avg.*rm|rata.*rm|rm\s*\/\s*shift|rm\s*per\s*shift/i);
-
-      // Deteksi unit tonase dari header (Ton vs Kg)
-      let tonUnit = "Kg";
-      if (cTonase >= 0 && / ton /i.test(h[cTonase]) && !/tonase/i.test(h[cTonase])) {
-        tonUnit = "Ton";
-      }
+      const headers = rows[headerIdx].map(norm);
+      const col = (...names) => headers.findIndex(h => names.includes(h));
+      const cBulan = col("bulan");
+      const cTahun = col("tahun");
+      const cRegu = col("kepala regu", "ka regu", "karu", "regu");
+      const cWeek = col("minggu", "week", "wk");
+      const cShift = col("shift jalan", "jumlah shift", "jml shift", "shift");
+      const cRm = col("output rm", "rm", "running meter", "total rm");
+      const cKg = col("output kg", "hasil kg", "kg", "tonase");
+      const cEff = col("efisiensi (%)", "efisiensi", "efficiency (%)", "efficiency");
+      const cProd = col("produktivitas (%)", "produktivitas", "productivity (%)", "productivity");
+      const cPcs = col("output pcs", "pcs");
+      const cM2 = col("output m2", "output m²", "m2");
+      const cLots = col("jumlah lot", "lots");
+      const cRun = col("running time (mnt)", "running time", "run time");
+      const cOpdt = col("op downtime (mnt)", "operational downtime", "op dt");
+      const cNonOp = col("non op dt (mnt)", "non operational downtime", "non op downtime");
 
       const out = [];
-      let currentReguContext = "";
-
-      for (const x of r.slice(headerIdx + 1)) {
-        if (!x || x.every(cell => !String(cell || "").trim())) continue;
-
-        // Jika nama regu muncul sebagai sub-judul blok baris
-        if (cRegu < 0) {
-          const blockRegu = normalizeRegu(x.join(" "));
-          if (blockRegu && x.filter(c => String(c || "").trim()).length <= 2) {
-            currentReguContext = blockRegu;
-            continue;
-          }
-        }
-
-        const reguRaw = cRegu >= 0 ? x[cRegu] : currentReguContext;
-        const regu = normalizeRegu(reguRaw);
+      for (const row of rows.slice(headerIdx + 1)) {
+        if (!row || row.every(cell => !String(cell || "").trim())) continue;
+        const regu = normalizeRegu(cRegu >= 0 ? row[cRegu] : "");
         if (!regu) continue;
 
-        const dInfo = cTanggal >= 0 ? parseDateInfo(x[cTanggal]) : null;
-        let b = cBulan >= 0 ? normalizeBulan(x[cBulan]) : "";
-        let t = cTahun >= 0 ? String(parseInt(x[cTahun]) || "").trim() : "";
-
-        if (!b && dInfo) b = dInfo.b;
-        if (!t && dInfo) t = dInfo.t;
-        if (!b) b = "September";
-        if (!t) t = "2026";
-
-        const w = normalizeWeek(cWeek >= 0 ? x[cWeek] : "", dInfo ? dInfo.day : null);
-        const rm = cRm >= 0 ? numSmart(x[cRm]) : 0;
-        const targetRm = cTargetRm >= 0 ? numSmart(x[cTargetRm]) : 0;
-        const ton = cTonase >= 0 ? numSmart(x[cTonase]) : 0;
-
-        let eff = 0;
-        if (cEff >= 0 && String(x[cEff] || "").trim() !== "") {
-          eff = numSmart(x[cEff]);
-          if (eff > 0 && eff <= 1.5) eff = eff * 100;
-        } else if (targetRm > 0 && rm > 0) {
-          eff = (rm / targetRm) * 100;
-        }
-
-        const shifts = cJmlShf >= 0 ? (numSmart(x[cJmlShf]) || 1) : 1;
-        const avgRmExplicit = cAvgRm >= 0 ? numSmart(x[cAvgRm]) : 0;
-        const shiftId = cShift >= 0 ? String(x[cShift] || "").trim() : "";
-        const dateKey = cTanggal >= 0 ? String(x[cTanggal] || "").trim() : "";
+        const bulan = normalizeBulan(cBulan >= 0 ? row[cBulan] : "") || "September";
+        const tahun = String(cTahun >= 0 ? row[cTahun] : "2026").trim() || "2026";
+        const week = normalizeWeek(cWeek >= 0 ? row[cWeek] : "", null);
+        const read = index => index >= 0 ? numSmart(row[index]) : 0;
+        let eff = read(cEff);
+        let prod = read(cProd);
+        if (eff > 0 && eff <= 1.5) eff *= 100;
+        if (prod > 0 && prod <= 1.5) prod *= 100;
 
         out.push({
-          b,
-          t,
-          w,
+          b: bulan,
+          t: tahun,
+          w: week,
           regu,
-          rm,
-          ton,
-          tonUnit,
+          rm: read(cRm),
+          ton: read(cKg),
+          tonUnit: "Kg",
           eff,
-          shifts,
-          avgRmExplicit,
-          shiftKey: (dateKey || shiftId) ? `${dateKey}|${shiftId}` : ""
+          prod,
+          shifts: read(cShift) || 1,
+          avgRmExplicit: 0,
+          shiftKey: "",
+          pcs: read(cPcs),
+          m2: read(cM2),
+          lots: read(cLots),
+          run: read(cRun),
+          opdt: read(cOpdt),
+          nodt: read(cNonOp)
         });
       }
 
       if (!out.length) {
-        throw new Error("Data Regu Yapet, Sugeng, atau Ace tidak ditemukan pada CSV");
+        throw new Error("Header terbaca, tetapi data Regu Yapet, Sugeng, atau Ace tidak ditemukan. Periksa isi kolom Kepala Regu.");
       }
       return out;
     }
