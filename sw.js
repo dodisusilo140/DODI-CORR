@@ -1,5 +1,5 @@
 /* Service Worker - Rekap Corr */
-const VERSION = "v16";
+const VERSION = "v17";
 const SHELL_CACHE = "rekap-corr-shell-" + VERSION;
 const DATA_CACHE  = "rekap-corr-data-" + VERSION;
 const CHART_URL = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js";
