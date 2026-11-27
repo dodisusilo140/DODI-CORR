@@ -966,7 +966,7 @@
     function normalizeRegu(raw) {
       if (!raw) return "";
       const s = String(raw).toLowerCase().trim();
-      if (s.includes("yepat")) return "Regu Yepat";
+      if (s.includes("yepat") || s.includes("yapet")) return "Regu Yepat";
       if (s.includes("sugeng")) return "Regu Sugeng";
       if (s.includes("ace")) return "Regu Ace";
       return "";
@@ -1092,7 +1092,76 @@
       return out;
     }
 
+    /* Parser untuk format laporan "BHS Efficiency & Productifity Report":
+       blok per regu, metrik di baris, kolom Week 1..5 (dan harian). */
+    function parseAnalisaReport(text) {
+      const rows = parseCSV(text);
+      const out = [];
+      const monthRe = /(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|january|february|march|may|june|july|august|october|december)\s+(\d{4})/i;
+
+      let bulan = "", tahun = "", regu = "", weekCols = [];
+      const cur = {};
+      const flush = () => { cur.regu = ""; };
+
+      const rec = {}; // key "regu|bulan|tahun|week" -> record
+      const getRec = (w) => {
+        const key = [regu, bulan, tahun, w].join("|");
+        if (!rec[key]) {
+          rec[key] = { b: bulan, t: tahun, w, regu, rm: 0, ton: 0, tonUnit: "Kg", eff: 0, shifts: 1, avgRmExplicit: 0, shiftKey: "" };
+          out.push(rec[key]);
+        }
+        return rec[key];
+      };
+
+      for (const x of rows) {
+        const c0 = String(x[0] || "").trim();
+        const c1 = String(x[1] || "").trim();
+
+        if (/BHS\s+Efficiency/i.test(c0)) {
+          const m = x.join(" ").match(monthRe);
+          if (m) { bulan = normalizeBulan(m[1]); tahun = m[2]; }
+          regu = ""; weekCols = [];
+          continue;
+        }
+
+        if (/^regu\b/i.test(c0)) {
+          const r = normalizeRegu(c0);
+          if (r) { regu = r; weekCols = []; continue; }
+        }
+
+        if (!regu) continue;
+
+        // baris header Week
+        const wc = [];
+        x.forEach((cell, i) => {
+          const m = String(cell || "").trim().match(/^week\s*(\d+)$/i);
+          if (m) wc.push({ i, w: "Week " + parseInt(m[1], 10) });
+        });
+        if (wc.length) { weekCols = wc; continue; }
+        if (!weekCols.length) continue;
+
+        let field = null;
+        const u = c1.toLowerCase();
+        if (c0 === "Output" && u === "rm") field = "rm";
+        else if (c0 === "" && u === "kg") field = "ton";
+        else if (c0.toUpperCase() === "EFFICIENCY" && u === "%") field = "eff";
+        else if (u === "rm/shift") field = "avgRmExplicit";
+        else if (/^number of running shifts/i.test(c0)) field = "shifts";
+        if (!field) continue;
+
+        for (const { i, w } of weekCols) {
+          let v = numSmart(x[i]);
+          if (field === "eff" && v > 0 && v <= 1.5) v *= 100;
+          getRec(w)[field] = v;
+        }
+      }
+      return out.filter(r => r.rm > 0 || r.ton > 0);
+    }
+
     function toAnalisaRecords(text) {
+      text = String(text || "").replace(/^\uFEFF/, "");
+      const report = parseAnalisaReport(text);
+      if (report.length) return report;
       const r = parseCSV(text);
       if (!r || r.length < 2) throw new Error("CSV kosong");
 
