@@ -1182,17 +1182,25 @@
       const r = parseCSV(text);
       if (!r || r.length < 2) throw new Error("CSV kosong");
 
-      // Cari baris header secara dinamis (maksimal 10 baris pertama)
-      let headerIdx = 0;
-      for (let i = 0; i < Math.min(10, r.length); i++) {
-        const joined = r[i].join(" ").toLowerCase();
-        if (/(regu|karu|kepala)/.test(joined) || (/ rm /.test(joined) && /(tonase|ton|kg|ef[ie]siensi|eff)/.test(joined))) {
+      // Cari baris header berdasarkan nama kolom, bukan sekadar kata "Regu".
+      // Ini mencegah baris petunjuk di bagian atas CSV terbaca sebagai header.
+      let headerIdx = -1;
+      for (let i = 0; i < Math.min(15, r.length); i++) {
+        const cols = r[i].map(x => String(x || "").trim().toLowerCase());
+        const hasBulan = cols.some(x => /^bulan$/.test(x));
+        const hasTahun = cols.some(x => /^tahun$/.test(x));
+        const hasRegu = cols.some(x => /^(kepala\\s*regu|ka\\.?\\s*regu|karu|regu)$/.test(x));
+        const hasWeek = cols.some(x => /^(minggu|week|wk)$/.test(x));
+        if (hasBulan && hasTahun && hasRegu && hasWeek) {
           headerIdx = i;
           break;
         }
       }
+      if (headerIdx < 0) {
+        throw new Error("Baris header CSV tidak ditemukan (butuh kolom Bulan, Tahun, Kepala Regu, dan Minggu)");
+      }
 
-      const h = r[headerIdx].map(x => x.trim());
+      const h = r[headerIdx].map(x => String(x || "").trim());
       const findCol = regex => h.findIndex(col => regex.test(col));
 
       const cBulan   = findCol(/^bulan$|month/i);
