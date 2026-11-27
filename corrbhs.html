@@ -865,7 +865,7 @@
        1. KONFIGURASI UTAMA
        ========================================================================== */
     const MESIN   = "BHS";
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6PsQXIi_KnnpZmjuRToMZ8wUPHNTSTE4WFnj0J2m5CR6wAf9C3pgfEqMl3Nyl-Q/pub?gid=1559265829&single=true&output=csv";
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6PsQXIi_KnnpZmjuRToMZ8wUPHNTSTE4WFnj0J2m5CR6wAf9C3pgfEqMl3Nyl-Q/pub?gid=1645042534&single=true&output=csv";
     const FLUTES  = ["BF", "CF", "BC", "EF", "BE"];
     const BULAN   = [
       "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -928,22 +928,32 @@
 
     function toRecords(text) {
       const r  = parseCSV(text);
+      if (!r.length) throw new Error("CSV kosong");
       const h  = r[0].map(x => x.trim());
-      const ix = n => h.indexOf(n);
+      const hLow = h.map(x => x.toLowerCase());
+      const ix = (...names) => {
+        for (const n of names) {
+          const i = h.indexOf(n);
+          if (i >= 0) return i;
+          const il = hLow.indexOf(n.toLowerCase());
+          if (il >= 0) return il;
+        }
+        return -1;
+      };
 
       const I = {
         b: ix("Bulan"),
         t: ix("Tahun"),
         s: ix("Shift"),
         f: ix("Flute"),
-        w: ix("WO#"),
-        p: ix("Hasil Corr"),
-        k: ix("Hasil (Kg)"),
-        m: ix("RM")
+        w: ix("WO#", "WO", "No WO", "Order"),
+        p: ix("Hasil Corr", "Hasil (Pcs)", "Hasil Pcs", "Qty"),
+        k: ix("Hasil (Kg)", "Hasil Kg", "Kg", "Berat (Kg)"),
+        m: ix("RM", "RM (Meter)", "Meter", "Running Meter")
       };
 
-      if (Object.values(I).some(v => v < 0)) {
-        throw new Error("Kolom tidak lengkap");
+      if (I.b < 0 || I.t < 0 || I.s < 0 || I.f < 0 || I.p < 0 || I.k < 0 || I.m < 0) {
+        throw new Error("Kolom tidak lengkap: " + h.join(", "));
       }
 
       // Deteksi kolom waste opsional bila tersedia di CSV
@@ -952,14 +962,14 @@
       const out = [];
       for (const x of r.slice(1)) {
         const bulan = (x[I.b] || "").trim();
-        const shift = parseInt(x[I.s]);
+        const shift = parseInt(String(x[I.s] || "").replace(/[^0-9]/g, ""));
         if (!bulan || ![1, 2, 3].includes(shift)) continue;
 
         out.push({
           b: bulan,
           t: String(parseInt(x[I.t]) || ""),
           s: shift,
-          f: (x[I.f] || "").trim() || "(Kosong)",
+          f: (x[I.f] || "").trim().toUpperCase() || "(Kosong)",
           p: num(x[I.p]),
           k: num(x[I.k]),
           m: num(x[I.m]),
